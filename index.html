@@ -11,7 +11,6 @@
     <!-- Telegram WebApp Core JS Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Strict CSS rule to completely disable price copying */
         .no-copy {
             user-select: none;
             -webkit-user-select: none;
@@ -47,7 +46,7 @@
         <div id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div class="col-span-full text-center py-20 text-slate-400 font-medium text-sm">
                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-500 block"></i>
-                Loading 600+ Products Live from Google Sheet...
+                Loading Products Live from Google Sheet via Safe JSON...
             </div>
         </div>
     </main>
@@ -56,7 +55,7 @@
     <section id="detailPage" class="hidden p-4 max-w-2xl mx-auto">
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
             
-            <!-- 1. Photos Section: Handles Comma-Separated Links Seamlessly -->
+            <!-- Photos Section: Handles Comma-Separated Links Seamlessly -->
             <div class="relative bg-slate-100 p-4 min-h-[300px] flex flex-col items-center justify-center">
                 <button id="prevImgBtn" onclick="changeImage(-1)" class="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 p-2.5 rounded-full shadow-md text-slate-700 z-10 hover:bg-white cursor-pointer transition">
                     <i class="fa-solid fa-angle-left"></i>
@@ -78,13 +77,10 @@
 
             <!-- Descriptive Text Data Fields Area -->
             <div class="p-5">
-                <!-- 2. Category Placement -->
                 <span id="detailCategory" class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md mb-3 select-text"></span>
                 
-                <!-- 3. Title Placement -->
                 <h2 id="detailTitle" class="text-lg font-bold text-slate-900 leading-snug mb-1.5 select-text"></h2>
                 
-                <!-- 4. ASIN (Directly positioned underneath Title) -->
                 <div class="flex items-center gap-2 mb-5 text-xs text-slate-500">
                     <span class="font-semibold text-slate-400">ASIN:</span>
                     <span id="detailAsin" class="bg-slate-100 px-2.5 py-1 rounded-md font-mono text-xs select-all text-slate-700 font-medium"></span>
@@ -92,7 +88,7 @@
 
                 <hr class="border-slate-100 my-4">
 
-                <!-- 5. Mathematical Price Breakdown Block (Protected via CSS from Copy Actions) -->
+                <!-- Mathematical Price Breakdown Block -->
                 <div class="bg-gradient-to-br from-amber-50 to-amber-50/20 border border-amber-200/60 rounded-xl p-4 mb-5 no-copy">
                     <h3 class="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-3"><i class="fa-solid fa-calculator mr-1.5"></i> Price Calculation</h3>
                     <div class="space-y-2.5 text-sm text-slate-700">
@@ -125,18 +121,17 @@
 
                 <hr class="border-slate-100 my-4">
 
-                <!-- 6. Long-Form Text Description Element -->
+                <!-- Long-Form Text Description Element -->
                 <div>
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Product Description</h3>
-                    <p id="detailDescription" class="text-slate-600 text-sm leading-relaxed whitespace-pre-line select-text bg-slate-50 p-3.5 rounded-xl border border-slate-100"></p>
+                    <div id="detailDescription" class="text-slate-600 text-sm leading-relaxed select-text bg-slate-50 p-3.5 rounded-xl border border-slate-100 overflow-x-auto"></div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Core App Logic Javascript Execution Engine -->
+    <!-- JavaScript Execution Engine -->
     <script>
-        // Start Telegram view matrix contexts
         const tgApp = window.Telegram?.WebApp;
         if (tgApp) { tgApp.expand(); tgApp.ready(); }
 
@@ -145,46 +140,36 @@
         let currentImageArray = [];
         let currentImageIdx = 0;
 
-        // ⚠️ APNI GOOGLE SHEET ID KO IS ID KI JAGA REPLACE KAREIN
+        // ⚠️ APNI GOOGLE SHEET ID REPLACE KAREIN
         const GOOGLE_SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE';
-        // Google visualization query endpoint to fetch sheet rows as JSON format bypassing keys completely
-        const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/1v5Yc4XsFG548Zwn8L9Zl_BAqNaUIEtntDo2JGsBxYn0/edit?usp=sharing/export?format=csv`;
+        // Safe JSON API endpoint for robust description parsing
+        const SHEET_JSON_URL = `https://docs.google.com/spreadsheets/d/1v5Yc4XsFG548Zwn8L9Zl_BAqNaUIEtntDo2JGsBxYn0/edit?usp=sharing/gviz/tq?tqx=out:json`;
 
-        // CSV Parser Logic function converting text data elegantly into direct arrays
-        function parseCSVToObjects(csvText) {
-            const lines = csvText.split(/\r?\n/);
-            if (lines.length < 2) return [];
-
-            // Quick function to remove Excel wrapper quotes from parsed texts
-            const cleanCell = cell => cell ? cell.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-            
-            // Get Headers Row
-            const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cleanCell);
-            const results = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cleanCell);
-                const obj = {};
-                
-                headers.forEach((header, index) => {
-                    obj[header] = row[index] || '';
-                });
-                results.push(obj);
-            }
-            return results;
-        }
-
-        // Live Direct Data Network Boot fetch engine
         async function loadGoogleSheetInventory() {
             try {
-                const res = await fetch(SHEET_CSV_URL);
-                if(!res.ok) throw new Error("Sheet fetching failed");
-                const textData = await res.text();
+                const res = await fetch(SHEET_JSON_URL);
+                if(!res.ok) throw new Error("Fetch failed");
+                const text = await res.text();
                 
-                productsInventory = parseCSVToObjects(textData);
+                // Pure JSON structural extraction bypassing line break crashes
+                const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+                const jsonData = JSON.parse(jsonString);
+                
+                const rows = jsonData.table.rows;
+                const cols = jsonData.table.cols.map(c => c.label.trim());
+
+                productsInventory = rows.map(row => {
+                    let item = {};
+                    row.c.forEach((cell, index) => {
+                        let colName = cols[index];
+                        if(colName) {
+                            item[colName] = cell ? (cell.v !== null ? cell.v : '') : '';
+                        }
+                    });
+                    return item;
+                });
+
                 activeDataset = [...productsInventory];
-                
                 document.getElementById('productCount').innerText = `${productsInventory.length} Available`;
                 renderMasterCatalog(activeDataset);
             } catch (err) {
@@ -192,12 +177,11 @@
                 document.getElementById('productsGrid').innerHTML = `
                     <div class="col-span-full text-center py-20 text-red-500 font-medium text-sm">
                         <i class="fa-solid fa-triangle-exclamation block text-3xl mb-2"></i>
-                        Google Sheet data load karne mein masla aya! Check karein ke Sheet ID theek hai aur Sheet Public hai.
+                        Data parse karne mein masla aya! Sheet ID check karein aur confirm karein Headers pehli row mein hain.
                     </div>`;
             }
         }
 
-        // Render Cards Grid Interface Component
         function renderMasterCatalog(items) {
             const grid = document.getElementById('productsGrid');
             grid.innerHTML = '';
@@ -211,7 +195,6 @@
                 const photoLinks = item.Images ? String(item.Images).split(',') : [];
                 const thumbnail = photoLinks[0] ? photoLinks[0].trim() : 'https://placehold.co/300?text=No+Photo';
 
-                // Pricing Calculation Engine Logic
                 const origPrice = Number(item.price || 0);
                 const discPct = Number(item.discount || 0);
                 const netDisc = origPrice - ((origPrice * discPct) / 100);
@@ -229,7 +212,7 @@
                     <div class="p-3 flex-1 flex flex-col justify-between">
                         <div>
                             <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">${item.Categories || 'General'}</span>
-                            <h3 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight">${item.Title}</h3>
+                            <h3 class="text-xs font-bold text-slate-800 line-clamp-2 leading-tight">${item.Title || 'No Title'}</h3>
                         </div>
                         <div class="mt-2 pt-2 border-t border-slate-100 flex items-baseline justify-between no-copy">
                             <span class="text-[10px] text-slate-400 line-through">PKR ${origPrice}</span>
@@ -241,7 +224,6 @@
             });
         }
 
-        // Search Bar logic
         function filterProducts() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             activeDataset = productsInventory.filter(p => 
@@ -252,26 +234,24 @@
             renderMasterCatalog(activeDataset);
         }
 
-        // Navigation Page Route management 
         function instantiateDetailRoute(product) {
             document.getElementById('mainPage').classList.add('hidden');
             document.getElementById('detailPage').classList.remove('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
             document.getElementById('appTitle').innerText = "Product Portfolio";
 
-            // Multi-Photo Array Builder logic
             currentImageArray = product.Images ? String(product.Images).split(',').map(url => url.trim()) : [];
             if(currentImageArray.length === 0) currentImageArray.push('https://placehold.co/400?text=No+Photo');
             currentImageIdx = 0;
             updateSliderUI();
 
-            // Set Data Texts
             document.getElementById('detailCategory').innerText = product.Categories || 'General';
-            document.getElementById('detailTitle').innerText = product.Title;
-            document.getElementById('detailAsin').innerText = product.ASIN;
-            document.getElementById('detailDescription').innerText = product.Description;
+            document.getElementById('detailTitle').innerText = product.Title || 'No Title';
+            document.getElementById('detailAsin').innerText = product.ASIN || 'N/A';
+            
+            // Safely injection of rich HTML content description
+            document.getElementById('detailDescription').innerHTML = product.Description || 'No description available.';
 
-            // Live Math engine calculations values assignments
             const baseOriginal = Number(product.price || 0);
             const discountValue = Number(product.discount || 0);
             const subtotalDiscounted = baseOriginal - ((baseOriginal * discountValue) / 100);
@@ -279,7 +259,6 @@
             const packagingFee = 40;
             const absoluteSumTotal = Math.round(subtotalDiscounted + computedTax + packagingFee);
 
-            // Populate UI Protected Fields
             document.getElementById('priceOriginal').innerText = `PKR ${baseOriginal}`;
             document.getElementById('priceDiscountPct').innerText = `${discountValue}% Off`;
             document.getElementById('priceDiscounted').innerText = `PKR ${subtotalDiscounted}`;
@@ -290,7 +269,6 @@
             window.scrollTo(0, 0);
         }
 
-        // Image slider functions
         function updateSliderUI() {
             const activeImg = currentImageArray[currentImageIdx];
             document.getElementById('detailImage').src = activeImg;
@@ -315,7 +293,6 @@
             document.getElementById('appTitle').innerText = "Zain Products Store";
         }
 
-        // Trigger loading system sequence on startup
         loadGoogleSheetInventory();
     </script>
 </body>
