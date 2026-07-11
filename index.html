@@ -314,32 +314,43 @@
             }
         }
 
-        // Advance 1-Click Multi Image Zip Downloader Engine
+        // Upgraded Hybrid Proxy & Tabs System to Bypass Server Security Policies
         async function downloadAllImagesAsZip() {
             const btn = document.getElementById('zipDownloadBtn');
             const asin = document.getElementById('detailAsin').innerText || 'Product';
             const originalText = btn.innerHTML;
             
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing ZIP...`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Downloading...`;
             btn.disabled = true;
 
             const zip = new JSZip();
+            let successCount = 0;
+
+            // Attempt ZIP using a robust public CORS reverse gateway proxy
             const fetchPromises = currentImageArray.map(async (url, index) => {
                 try {
-                    // Fetching through proxy or direct blob if server allows CORS
-                    const response = await fetch(url);
+                    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                    const response = await fetch(proxiedUrl);
                     if (!response.ok) throw new Error();
                     const blob = await response.blob();
                     zip.file(`Photo_${index + 1}.jpg`, blob);
+                    successCount++;
                 } catch (e) {
-                    console.error("Failed to pack image into ZIP:", url);
+                    console.warn("Direct proxy failed, trying backup fetch route for:", url);
                 }
             });
 
             await Promise.all(fetchPromises);
 
-            if (Object.keys(zip.files).length === 0) {
-                alert("Server restrictions are blocking automatic compression. Please use the 'View Active' option to save manually.");
+            // 🌟 Fallback Route: If proxy fails, open all items safely in new tabs simultaneously for fast local manual saves
+            if (successCount === 0) {
+                currentImageArray.forEach(url => {
+                    if (window.Telegram?.WebApp) {
+                        window.Telegram.WebApp.openLink(url);
+                    } else {
+                        window.open(url, '_blank');
+                    }
+                });
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 return;
