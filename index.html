@@ -10,8 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Telegram WebApp Core JS Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- JSZip Library for 1-Click Multi Image Downloading -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         .no-copy {
             user-select: none;
@@ -69,27 +67,28 @@
                     <i class="fa-solid fa-angle-right"></i>
                 </button>
 
-                <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+                <div class="absolute bottom-4 right-4">
                     <span id="imageCounter" class="bg-slate-900/60 text-white text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur-xs">1/1</span>
-                    <button id="downloadBtn" onclick="downloadActiveImage()" class="bg-white text-slate-700 px-3 py-1.5 rounded-xl shadow-md hover:bg-slate-100 transition flex items-center gap-1.5 font-bold text-xs cursor-pointer">
-                        <i class="fa-solid fa-eye text-indigo-600"></i> View Active
-                    </button>
                 </div>
             </div>
 
             <!-- Descriptive Text Data Fields Area -->
             <div class="p-5">
-                <div class="flex justify-between items-start mb-3">
-                    <span id="detailCategory" class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md select-text"></span>
-                    
-                    <!-- 1-Click Zip Downloader Button -->
-                    <button id="zipDownloadBtn" onclick="downloadAllImagesAsZip()" class="bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-emerald-700 shadow-xs transition flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-file-zipper"></i> Download All Photos (ZIP)
-                    </button>
+                
+                <!-- Bot Download Instructions Notice Box -->
+                <div class="mb-5 bg-indigo-50 border border-indigo-200/60 rounded-xl p-3.5 flex items-start gap-3 shadow-xs">
+                    <i class="fa-solid fa-circle-info text-indigo-600 text-base mt-0.5"></i>
+                    <p class="text-xs font-semibold text-indigo-950 leading-relaxed">
+                        Photos download karne ke liye ASIN copy kar ke apne bot mein <span class="bg-indigo-200/60 px-1.5 py-0.5 rounded text-indigo-800 font-mono text-[11px]">Download photo</span> command select karein aur phir bot ko ASIN send karein.
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <span id="detailCategory" class="inline-block bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md select-text"></span>
                 </div>
                 
                 <!-- Title & Copy -->
-                <div class="mb-3">
+                <div class="mb-4">
                     <h2 id="detailTitle" class="text-lg font-bold text-slate-900 leading-snug mb-2 select-text"></h2>
                     <button onclick="copyToClipboard('detailTitle', this)" class="bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition cursor-pointer flex items-center gap-1.5">
                         <i class="fa-solid fa-copy"></i> Copy Title
@@ -101,7 +100,7 @@
                     <span class="font-semibold text-slate-400">ASIN:</span>
                     <span id="detailAsin" class="font-mono text-xs text-slate-700 font-bold mr-2 select-all"></span>
                     <button onclick="copyToClipboard('detailAsin', this)" class="text-indigo-600 font-bold hover:text-indigo-800 transition cursor-pointer flex items-center gap-1">
-                        <i class="fa-solid fa-copy"></i> Copy
+                        <i class="fa-solid fa-copy"></i> Copy ASIN
                     </button>
                 </div>
 
@@ -303,75 +302,6 @@
             if (currentImageIdx >= currentImageArray.length) currentImageIdx = 0;
             if (currentImageIdx < 0) currentImageIdx = currentImageArray.length - 1;
             updateSliderUI();
-        }
-
-        function downloadActiveImage() {
-            const currentUrl = currentImageArray[currentImageIdx];
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.openLink(currentUrl);
-            } else {
-                window.open(currentUrl, '_blank');
-            }
-        }
-
-        // Upgraded Hybrid Proxy & Tabs System to Bypass Server Security Policies
-        async function downloadAllImagesAsZip() {
-            const btn = document.getElementById('zipDownloadBtn');
-            const asin = document.getElementById('detailAsin').innerText || 'Product';
-            const originalText = btn.innerHTML;
-            
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Downloading...`;
-            btn.disabled = true;
-
-            const zip = new JSZip();
-            let successCount = 0;
-
-            // Attempt ZIP using a robust public CORS reverse gateway proxy
-            const fetchPromises = currentImageArray.map(async (url, index) => {
-                try {
-                    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-                    const response = await fetch(proxiedUrl);
-                    if (!response.ok) throw new Error();
-                    const blob = await response.blob();
-                    zip.file(`Photo_${index + 1}.jpg`, blob);
-                    successCount++;
-                } catch (e) {
-                    console.warn("Direct proxy failed, trying backup fetch route for:", url);
-                }
-            });
-
-            await Promise.all(fetchPromises);
-
-            // 🌟 Fallback Route: If proxy fails, open all items safely in new tabs simultaneously for fast local manual saves
-            if (successCount === 0) {
-                currentImageArray.forEach(url => {
-                    if (window.Telegram?.WebApp) {
-                        window.Telegram.WebApp.openLink(url);
-                    } else {
-                        window.open(url, '_blank');
-                    }
-                });
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                return;
-            }
-
-            zip.generateAsync({ type: "blob" }).then(function (content) {
-                const blobUrl = URL.createObjectURL(content);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `${asin}_Photos.zip`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
-                
-                btn.innerHTML = `<i class="fa-solid fa-check"></i> ZIP Downloaded!`;
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }, 2000);
-            });
         }
 
         function copyToClipboard(elementId, btnElement, isHtml = false) {
