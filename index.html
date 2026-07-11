@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Catalog Store</title>
+    <title>D Dropshiping by Ali Zain</title>
     <!-- Tailwind CSS for Professional Responsive UI -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Telegram WebApp Core JS Script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- JSZip Library for 1-Click Multi Image Downloading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         .no-copy {
             user-select: none;
@@ -27,7 +29,7 @@
             <button id="backBtn" class="hidden text-slate-600 hover:text-slate-900 mr-1 cursor-pointer" onclick="showMainPage()">
                 <i class="fa-solid fa-chevron-left text-lg font-bold"></i>
             </button>
-            <h1 id="appTitle" class="text-lg font-extrabold text-slate-900 tracking-tight">Zain Products Store</h1>
+            <h1 id="appTitle" class="text-lg font-extrabold text-slate-900 tracking-tight">D Dropshiping by Ali Zain</h1>
         </div>
         <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full border border-indigo-100" id="productCount">0 Items</span>
     </header>
@@ -69,15 +71,22 @@
 
                 <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
                     <span id="imageCounter" class="bg-slate-900/60 text-white text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur-xs">1/1</span>
-                    <button id="downloadBtn" onclick="downloadActiveImage()" class="bg-indigo-600 text-white px-3.5 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition flex items-center gap-2 font-bold text-xs cursor-pointer">
-                        <i class="fa-solid fa-eye"></i> View & Save Photo
+                    <button id="downloadBtn" onclick="downloadActiveImage()" class="bg-white text-slate-700 px-3 py-1.5 rounded-xl shadow-md hover:bg-slate-100 transition flex items-center gap-1.5 font-bold text-xs cursor-pointer">
+                        <i class="fa-solid fa-eye text-indigo-600"></i> View Active
                     </button>
                 </div>
             </div>
 
             <!-- Descriptive Text Data Fields Area -->
             <div class="p-5">
-                <span id="detailCategory" class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md mb-3 select-text"></span>
+                <div class="flex justify-between items-start mb-3">
+                    <span id="detailCategory" class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md select-text"></span>
+                    
+                    <!-- 1-Click Zip Downloader Button -->
+                    <button id="zipDownloadBtn" onclick="downloadAllImagesAsZip()" class="bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-emerald-700 shadow-xs transition flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-file-zipper"></i> Download All Photos (ZIP)
+                    </button>
+                </div>
                 
                 <!-- Title & Copy -->
                 <div class="mb-3">
@@ -296,15 +305,62 @@
             updateSliderUI();
         }
 
-        // 100% Reliable Telegram Image Viewer Redirect System
         function downloadActiveImage() {
             const currentUrl = currentImageArray[currentImageIdx];
             if (window.Telegram?.WebApp) {
-                // Open inside Telegram's native view overlay seamlessly
                 window.Telegram.WebApp.openLink(currentUrl);
             } else {
                 window.open(currentUrl, '_blank');
             }
+        }
+
+        // Advance 1-Click Multi Image Zip Downloader Engine
+        async function downloadAllImagesAsZip() {
+            const btn = document.getElementById('zipDownloadBtn');
+            const asin = document.getElementById('detailAsin').innerText || 'Product';
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing ZIP...`;
+            btn.disabled = true;
+
+            const zip = new JSZip();
+            const fetchPromises = currentImageArray.map(async (url, index) => {
+                try {
+                    // Fetching through proxy or direct blob if server allows CORS
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error();
+                    const blob = await response.blob();
+                    zip.file(`Photo_${index + 1}.jpg`, blob);
+                } catch (e) {
+                    console.error("Failed to pack image into ZIP:", url);
+                }
+            });
+
+            await Promise.all(fetchPromises);
+
+            if (Object.keys(zip.files).length === 0) {
+                alert("Server restrictions are blocking automatic compression. Please use the 'View Active' option to save manually.");
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            zip.generateAsync({ type: "blob" }).then(function (content) {
+                const blobUrl = URL.createObjectURL(content);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `${asin}_Photos.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+                
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> ZIP Downloaded!`;
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            });
         }
 
         function copyToClipboard(elementId, btnElement, isHtml = false) {
@@ -326,7 +382,7 @@
             document.getElementById('mainPage').classList.remove('hidden');
             document.getElementById('detailPage').classList.add('hidden');
             document.getElementById('backBtn').classList.add('hidden');
-            document.getElementById('appTitle').innerText = "Zain Products Store";
+            document.getElementById('appTitle').innerText = "D Dropshiping by Ali Zain";
         }
 
         loadGoogleSheetInventory();
