@@ -46,7 +46,7 @@
         <div id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div class="col-span-full text-center py-20 text-slate-400 font-medium text-sm">
                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-500 block"></i>
-                Loading Products Live from Google Sheet via Safe JSON...
+                Loading Products Live from Google Sheet...
             </div>
         </div>
     </main>
@@ -55,7 +55,7 @@
     <section id="detailPage" class="hidden p-4 max-w-2xl mx-auto">
         <div class="bg-white rounded-2xl shadow-xs border border-slate-100 overflow-hidden">
             
-            <!-- Photos Section: Handles Comma-Separated Links Seamlessly -->
+            <!-- Photos Section -->
             <div class="relative bg-slate-100 p-4 min-h-[300px] flex flex-col items-center justify-center">
                 <button id="prevImgBtn" onclick="changeImage(-1)" class="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 p-2.5 rounded-full shadow-md text-slate-700 z-10 hover:bg-white cursor-pointer transition">
                     <i class="fa-solid fa-angle-left"></i>
@@ -69,9 +69,9 @@
 
                 <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
                     <span id="imageCounter" class="bg-slate-900/60 text-white text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur-xs">1/1</span>
-                    <a id="downloadBtn" href="" download="product_image.jpg" target="_blank" class="bg-white text-slate-800 px-3.5 py-2 rounded-xl shadow-md hover:bg-slate-50 transition flex items-center gap-2 font-bold text-xs cursor-pointer">
+                    <button id="downloadBtn" onclick="downloadActiveImage()" class="bg-white text-slate-800 px-3.5 py-2 rounded-xl shadow-md hover:bg-slate-50 transition flex items-center gap-2 font-bold text-xs cursor-pointer">
                         <i class="fa-solid fa-download text-indigo-600"></i> Download Photo
-                    </a>
+                    </button>
                 </div>
             </div>
 
@@ -79,11 +79,21 @@
             <div class="p-5">
                 <span id="detailCategory" class="inline-block bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-md mb-3 select-text"></span>
                 
-                <h2 id="detailTitle" class="text-lg font-bold text-slate-900 leading-snug mb-1.5 select-text"></h2>
+                <!-- Title & Copy -->
+                <div class="mb-3">
+                    <h2 id="detailTitle" class="text-lg font-bold text-slate-900 leading-snug mb-2 select-text"></h2>
+                    <button onclick="copyToClipboard('detailTitle', this)" class="bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition cursor-pointer flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i> Copy Title
+                    </button>
+                </div>
                 
-                <div class="flex items-center gap-2 mb-5 text-xs text-slate-500">
+                <!-- ASIN & Copy -->
+                <div class="flex items-center gap-2 mb-5 text-xs text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-100 w-fit">
                     <span class="font-semibold text-slate-400">ASIN:</span>
-                    <span id="detailAsin" class="bg-slate-100 px-2.5 py-1 rounded-md font-mono text-xs select-all text-slate-700 font-medium"></span>
+                    <span id="detailAsin" class="font-mono text-xs text-slate-700 font-bold mr-2 select-all"></span>
+                    <button onclick="copyToClipboard('detailAsin', this)" class="text-indigo-600 font-bold hover:text-indigo-800 transition cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-copy"></i> Copy
+                    </button>
                 </div>
 
                 <hr class="border-slate-100 my-4">
@@ -121,9 +131,14 @@
 
                 <hr class="border-slate-100 my-4">
 
-                <!-- Long-Form Text Description Element -->
+                <!-- Description & Copy -->
                 <div>
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Product Description</h3>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Product Description</h3>
+                        <button onclick="copyToClipboard('detailDescription', this, true)" class="bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition cursor-pointer flex items-center gap-1.5">
+                            <i class="fa-solid fa-copy"></i> Copy Description
+                        </button>
+                    </div>
                     <div id="detailDescription" class="text-slate-600 text-sm leading-relaxed select-text bg-slate-50 p-3.5 rounded-xl border border-slate-100 overflow-x-auto"></div>
                 </div>
             </div>
@@ -142,7 +157,6 @@
 
         // ⚠️ APNI GOOGLE SHEET ID REPLACE KAREIN
         const GOOGLE_SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE';
-        // Safe JSON API endpoint for robust description parsing
         const SHEET_JSON_URL = `https://docs.google.com/spreadsheets/d/1v5Yc4XsFG548Zwn8L9Zl_BAqNaUIEtntDo2JGsBxYn0/gviz/tq?tqx=out:json`;
 
         async function loadGoogleSheetInventory() {
@@ -151,7 +165,6 @@
                 if(!res.ok) throw new Error("Fetch failed");
                 const text = await res.text();
                 
-                // Pure JSON structural extraction bypassing line break crashes
                 const jsonString = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 const jsonData = JSON.parse(jsonString);
                 
@@ -192,6 +205,7 @@
             }
 
             items.forEach(item => {
+                // Fixed comma splitter splitting URLs perfectly
                 const photoLinks = item.Images ? String(item.Images).split(',') : [];
                 const thumbnail = photoLinks[0] ? photoLinks[0].trim() : 'https://placehold.co/300?text=No+Photo';
 
@@ -240,7 +254,8 @@
             document.getElementById('backBtn').classList.remove('hidden');
             document.getElementById('appTitle').innerText = "Product Portfolio";
 
-            currentImageArray = product.Images ? String(product.Images).split(',').map(url => url.trim()) : [];
+            // Splitting clean multi-image links flawlessly
+            currentImageArray = product.Images ? String(product.Images).split(',').map(url => url.trim()).filter(url => url !== "") : [];
             if(currentImageArray.length === 0) currentImageArray.push('https://placehold.co/400?text=No+Photo');
             currentImageIdx = 0;
             updateSliderUI();
@@ -248,8 +263,6 @@
             document.getElementById('detailCategory').innerText = product.Categories || 'General';
             document.getElementById('detailTitle').innerText = product.Title || 'No Title';
             document.getElementById('detailAsin').innerText = product.ASIN || 'N/A';
-            
-            // Safely injection of rich HTML content description
             document.getElementById('detailDescription').innerHTML = product.Description || 'No description available.';
 
             const baseOriginal = Number(product.price || 0);
@@ -272,7 +285,6 @@
         function updateSliderUI() {
             const activeImg = currentImageArray[currentImageIdx];
             document.getElementById('detailImage').src = activeImg;
-            document.getElementById('downloadBtn').href = activeImg;
             document.getElementById('imageCounter').innerText = `${currentImageIdx + 1}/${currentImageArray.length}`;
 
             document.getElementById('prevImgBtn').style.display = currentImageArray.length > 1 ? 'block' : 'none';
@@ -284,6 +296,49 @@
             if (currentImageIdx >= currentImageArray.length) currentImageIdx = 0;
             if (currentImageIdx < 0) currentImageIdx = currentImageArray.length - 1;
             updateSliderUI();
+        }
+
+        // Professional Force Blob Image Download System bypassing Window popups
+        async function downloadActiveImage() {
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.innerHTML;
+            try {
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Downloading...`;
+                const imageUrl = currentImageArray[currentImageIdx];
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `Product_Image_${document.getElementById('detailAsin').innerText || 'Item'}_${currentImageIdx + 1}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                console.error("Download fail:", error);
+                // Fallback in case of CORS restriction
+                window.open(currentImageArray[currentImageIdx], '_blank');
+            } finally {
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Global Copy Text Component System (Clean HTML tags parsing option)
+        function copyToClipboard(elementId, btnElement, isHtml = false) {
+            const element = document.getElementById(elementId);
+            let textToCopy = isHtml ? element.innerText : element.textContent;
+            
+            navigator.clipboard.writeText(textToCopy.trim()).then(() => {
+                const origMarkup = btnElement.innerHTML;
+                btnElement.innerHTML = `<i class="fa-solid fa-check text-emerald-500"></i> Copied!`;
+                setTimeout(() => {
+                    btnElement.innerHTML = origMarkup;
+                }, 2000);
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+            });
         }
 
         function showMainPage() {
