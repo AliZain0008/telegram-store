@@ -69,8 +69,8 @@
 
                 <div class="absolute bottom-4 left-4 right-4 flex justify-between items-center">
                     <span id="imageCounter" class="bg-slate-900/60 text-white text-[11px] font-medium px-2.5 py-1 rounded-full backdrop-blur-xs">1/1</span>
-                    <button id="downloadBtn" onclick="downloadActiveImage()" class="bg-white text-slate-800 px-3.5 py-2 rounded-xl shadow-md hover:bg-slate-50 transition flex items-center gap-2 font-bold text-xs cursor-pointer">
-                        <i class="fa-solid fa-download text-indigo-600"></i> Download Photo
+                    <button id="downloadBtn" onclick="downloadActiveImage()" class="bg-indigo-600 text-white px-3.5 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition flex items-center gap-2 font-bold text-xs cursor-pointer">
+                        <i class="fa-solid fa-eye"></i> View & Save Photo
                     </button>
                 </div>
             </div>
@@ -190,7 +190,7 @@
                 document.getElementById('productsGrid').innerHTML = `
                     <div class="col-span-full text-center py-20 text-red-500 font-medium text-sm">
                         <i class="fa-solid fa-triangle-exclamation block text-3xl mb-2"></i>
-                        Data parse karne mein masla aya! Sheet ID check karein aur confirm karein Headers pehli row mein hain.
+                        Data parse karne mein masla aya!
                     </div>`;
             }
         }
@@ -205,7 +205,6 @@
             }
 
             items.forEach(item => {
-                // Fixed comma splitter splitting URLs perfectly
                 const photoLinks = item.Images ? String(item.Images).split(',') : [];
                 const thumbnail = photoLinks[0] ? photoLinks[0].trim() : 'https://placehold.co/300?text=No+Photo';
 
@@ -254,7 +253,6 @@
             document.getElementById('backBtn').classList.remove('hidden');
             document.getElementById('appTitle').innerText = "Product Portfolio";
 
-            // Splitting clean multi-image links flawlessly
             currentImageArray = product.Images ? String(product.Images).split(',').map(url => url.trim()).filter(url => url !== "") : [];
             if(currentImageArray.length === 0) currentImageArray.push('https://placehold.co/400?text=No+Photo');
             currentImageIdx = 0;
@@ -298,34 +296,17 @@
             updateSliderUI();
         }
 
-        // Professional Force Blob Image Download System bypassing Window popups
-        async function downloadActiveImage() {
-            const btn = document.getElementById('downloadBtn');
-            const originalText = btn.innerHTML;
-            try {
-                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-indigo-600"></i> Downloading...`;
-                const imageUrl = currentImageArray[currentImageIdx];
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `Product_Image_${document.getElementById('detailAsin').innerText || 'Item'}_${currentImageIdx + 1}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
-            } catch (error) {
-                console.error("Download fail:", error);
-                // Fallback in case of CORS restriction
-                window.open(currentImageArray[currentImageIdx], '_blank');
-            } finally {
-                btn.innerHTML = originalText;
+        // 100% Reliable Telegram Image Viewer Redirect System
+        function downloadActiveImage() {
+            const currentUrl = currentImageArray[currentImageIdx];
+            if (window.Telegram?.WebApp) {
+                // Open inside Telegram's native view overlay seamlessly
+                window.Telegram.WebApp.openLink(currentUrl);
+            } else {
+                window.open(currentUrl, '_blank');
             }
         }
 
-        // Global Copy Text Component System (Clean HTML tags parsing option)
         function copyToClipboard(elementId, btnElement, isHtml = false) {
             const element = document.getElementById(elementId);
             let textToCopy = isHtml ? element.innerText : element.textContent;
